@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import os
 import time
 
-# --- 配置区域 (从 GitHub Secrets 读取，稍后设置) ---
+# --- 配置区域 (从 GitHub Secrets 读取) ---
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO = os.getenv("EMAIL_TO")
@@ -26,21 +26,18 @@ STOCKS = {
 def get_stock_news(code):
     """获取个股最近新闻"""
     try:
-        # 获取新闻列表，akshare接口
         df = ak.stock_news_em(symbol=code)
         if df.empty:
             return []
         
-        # 筛选过去24小时的新闻 (根据发布时间)
-        # 注意：不同接口时间格式可能不同，这里做简单处理
         now = datetime.now()
         recent_news = []
         
         for _, row in df.iterrows():
             pub_time_str = str(row['发布时间'])
-            # 简单清洗时间格式，适配常见格式
             try:
                 if '-' in pub_time_str:
+                    # 尝试匹配常见格式
                     pub_time = datetime.strptime(pub_time_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
                 else:
                     continue
@@ -54,7 +51,7 @@ def get_stock_news(code):
             except:
                 continue
         
-        return recent_news[:5] # 每个股票只取最新5条
+        return recent_news[:5] 
     except Exception as e:
         return [{"title": f"获取失败: {str(e)}", "time": "-", "source": "Error"}]
 
@@ -80,7 +77,6 @@ def generate_report():
         if news_list:
             report_html += "<ul>"
             for news in news_list:
-                # 简单的关键词高亮逻辑
                 title = news['title']
                 keywords = ["定点", "订单", "投产", "涨价", "并购", "核准", "交付", "量产"]
                 for kw in keywords:
@@ -113,13 +109,12 @@ def send_email(content):
     msg['From'] = EMAIL_USER
     msg['To'] = EMAIL_TO
     
-    # 绑定HTML内容
     part = MIMEText(content, 'html', 'utf-8')
     msg.attach(part)
     
     try:
-        # QQ邮箱 SMTP 服务器
-        server = smtplib.SMTP_SSL("smtp.qq.com", 465)
+        # ⚠️ 这里已修改为 126邮箱的服务器地址
+        server = smtplib.SMTP_SSL("smtp.126.com", 465)
         server.login(EMAIL_USER, EMAIL_PASS)
         server.sendmail(EMAIL_USER, EMAIL_TO, msg.as_string())
         server.quit()

@@ -1,5 +1,4 @@
 name: Daily Stock Monitor
-
 on:
   schedule:
     - cron: '30 0 * * *'
